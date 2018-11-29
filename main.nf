@@ -72,19 +72,22 @@ process trimmomatic {
     publishDir "output/", mode: 'copy', pattern: '*_trimout.txt'
 
     input:
-        set val(id), file(id) from fq_set
+        set val(id), file(reads) from fq_set
 
     output:
         set id, file("${id}_trim.fq.gz") into trim_fq_set
+        file("*_trimout.txt") into trim_log
 
     script:
     id_out = id.replace('.fastq.gz', '_trim.fq.gz')
 
     """
-        trimmomatic SE -threads ${large_core} ${id}_trim.fq.gz ILLUMINACLIP:${adapters}:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:15 &> ${id}_trimout.txt
+        trimmomatic SE -threads ${large_core} ${id} ${id_out} ILLUMINACLIP:${adapters}:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:15 &> ${id}_trimout.txt
+
     """
     ////rm *U.fq.gz
 }
+
 
 // //TRIM READS
 // process trimmomatic {

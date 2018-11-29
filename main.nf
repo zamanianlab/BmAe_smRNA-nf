@@ -125,8 +125,8 @@ process build_bowtie_index {
         file("host.fa.gz") from host_bowtie
 
     output:
-        file "parasite_bowtie*.ebwt" into parasite_bowtie_indices
-        file "host_bowtie*.ebwt" into host_bowtie_indices
+        file "parasite_bowtie*.ebwt" into bowtie_parasite_indices
+        file "host_bowtie*.ebwt" into bowtie_host_indices
 
     """
         zcat parasite.fa.gz > parasite.fa
@@ -146,7 +146,7 @@ process align {
 
     input:
         set val(id), file(reads) from fq_trim1
-        file parasite_bwaindex from parasite_bwa_indices.first()
+        file(parasite_bwaindex) from bwa_parasite_indices.first()
 
     output:
         file("bwa_parasite_align.txt") into bwa_stats
@@ -176,7 +176,7 @@ process align {
 
     input:
         set val(id), file(reads) from fq_trim2
-        file host_bwaindex from host_bwa_indices.first()
+        file(host_bwaindex) from bwa_host_indices.first()
 
     output:
         file("bwa_host_align.txt") into bwa_stats

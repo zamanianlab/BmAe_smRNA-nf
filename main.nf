@@ -75,7 +75,7 @@ process trimmomatic {
         set val(id), file(reads) from fq_set
 
     output:
-        set id, file(id_out) into trim_fq_set
+        set id, file(id_out) into fq_trim
         file("*_trimout.txt") into trim_log
 
     script:
@@ -85,79 +85,59 @@ process trimmomatic {
         trimmomatic SE -threads ${large_core} ${id} ${id_out} ILLUMINACLIP:${adapters}:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:15 &> ${id}_trimout.txt
 
     """
-    ////rm *U.fq.gz
+}
+fq_trim.into { fq_trim1; fq_trim2; fq_trim3 }
+
+
+//INDEX GENOMES - BWA
+process build_bwa_index {
+
+    publishDir "${output}/reference/", mode: 'copy'
+
+    cpus large_core
+
+    input:
+        file("parasite.fa.gz") from parasite_bwa
+        file("host.fa.gz") from host_bwa
+
+    output:
+        file "parasite.*" into bwa_parasite_indices
+        file "host.*" into bwa_host_indices
+
+    """
+        zcat parasite.fa.gz > parasite.fa
+        bwa index parasite.fa
+        zcat host.fa.gz > host.fa
+        bwa index host.fa
+    """
 }
 
 
-// //TRIM READS
-// process trimmomatic {
-//     cpus large_core
-//     tag { id }
-//
-//     publishDir "output/", mode: 'copy', pattern: '*_trimout.txt'
-//
-//     input:
-//         set val(id), file(id) from fq_set
-//         set val(id), file(forward), file(reverse) from read_pairs
-//
-//     output:
-//         file(name_out) into fq_trim
-//         file("*_trimout.txt") into trim_log
-//
-//     script:
-//     name_out = name.replace('.fastq.gz', '_trim.fq.gz')
-//
-//     """
-//         trimmomatic SE -threads ${large_core} $id ${name_out} ILLUMINACLIP:${adapters}:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:15 &> ${reads}_trimout.txt
-//         trimmomatic PE -threads ${large_core} $forward $reverse -baseout ${id}.fq.gz ILLUMINACLIP:/home/linuxbrew/.linuxbrew/Cellar/trimmomatic/0.36/share/trimmomatic/adapters/TruSeq3-PE.fa:2:80:10 MINLEN:50 &> ${reads}_trimout.txt
-//     """
-// }
-// fq_trim.into { fq_trim1; fq_trim2; fq_trim3 }
-//
-//
-//
-// //INDEX GENOME - BWA
-// process build_bwa_index {
-//
-//     publishDir "${output}/reference/", mode: 'copy'
-//
-//     cpus large_core
-//
-//     input:
-//         file("reference.fa.gz") from reference_bwa
-//
-//     output:
-//         file "reference.*" into bwa_indices
-//
-//     """
-//         zcat reference.fa.gz > reference.fa
-//         bwa index reference.fa
-//     """
-// }
-//
-//
-//
-// //INDEX GENOME - BOWTIE
-// process build_bowtie_index {
-//
-//     publishDir "${output}/reference/", mode: 'copy'
-//
-//     cpus large_core
-//
-//     input:
-//         file("reference.fa.gz") from reference_bowtie
-//
-//     output:
-//         file "*.ebwt" into bowtie_indices
-//
-//     """
-//         zcat reference.fa.gz > reference.fa
-//         bowtie-build reference.fa ref_bowtie
-//     """
-// }
-//
-//
-//
+//INDEX GENOME - BOWTIE
+process build_bowtie_index {
+
+    publishDir "${output}/reference/", mode: 'copy'
+
+    cpus large_core
+
+    input:
+        file("parasite.fa.gz") from parasite_bowtie
+        file("host.fa.gz") from host_bowtie
+
+    output:
+        file "parasite_bowtie*.ebwt" into parasite_bowtie_indices
+        file "host_bowtie*.ebwt" into host_bowtie_indices
+
+    """
+        zcat parasite.fa.gz > parasite.fa
+        bowtie-build parasite.fa parasite_bowtie
+        zcat host.fa.gz > host.fa
+        bowtie-build host.fa host_bowtie
+    """
+}
+
+
+
 // // ALIGN TRIMMED READS TO GENOME (BWA)
 // process align {
 //     publishDir "${output}/stats/", mode: 'copy'

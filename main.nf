@@ -112,67 +112,27 @@ process build_bowtie_index {
     """
 }
 
+// Mirdeep2 mapper.pl
+process mirDeep2_mapper {
+    cpus large_core
+    tag { id }
 
+    input:
+        set val(id), file(reads) from fq_trim_mirdeep
+        file bowtieindex from bowtie_indices.first()
 
-// // ALIGN TRIMMED READS TO HOST GENOME (BWA)
-// process align {
-//     publishDir "${output}/bwa_stats/", mode: 'copy'
-//
-//     cpus large_core
-//     tag { id }
-//
-//     input:
-//         set val(id), file(reads) from fq_trim2
-//         file(host_bwaindex) from bwa_host_indices.first()
-//
-//     output:
-//         file("bwa_host_align.txt") into bwa_stats
-//
-//     script:
-//         fa_prefix = reads[0].toString() - ~/(_trim)(\.fq\.gz)$/
-//
-//         """
-//         bwa aln -o 0 -n 0 -t ${large_core} host.fa ${reads} > ${id}.sai
-//         bwa samse host.fa ${id}.sai ${reads} > ${id}.sam
-//         samtools view -bS ${id}.sam > ${id}.unsorted.bam
-//         rm *.sam
-//         samtools flagstat ${id}.unsorted.bam
-//         samtools sort -@ ${large_core} -o ${id}.bam ${id}.unsorted.bam
-//         rm *.unsorted.bam
-//         samtools index -b ${id}.bam
-//         samtools flagstat ${id}.bam > bwa_host_align.txt
-//         """
-// }
+    output:
+        file("${fa_prefix}_map.arf") into reads_vs_genome_arf
+        file("${fa_prefix}_collapsed.fa") into reads_collapsed
 
-//
-//
-//
-//
+    script:
+        fa_prefix = reads[0].toString() - ~/(_trim)(\.fq\.gz)$/
 
-//
-//
-//
-// // Mirdeep2 mapper.pl
-// process mirDeep2_mapper {
-//     cpus large_core
-//     tag { reads }
-//
-//     input:
-//         file reads from fq_trim3
-//         file bowtieindex from bowtie_indices.first()
-//
-//     output:
-//         file("${fa_prefix}_map.arf") into reads_vs_genome_arf
-//         file("${fa_prefix}_collapsed.fa") into reads_collapsed
-//
-//     script:
-//         fa_prefix = reads[0].toString() - ~/(_trim)(\.fq\.gz)$/
-//
-//         """
-//         zcat ${reads} > ${fa_prefix}.fa
-//         mapper.pl ${fa_prefix}.fa -e -h -j -l 18 -m -p ref_bowtie -s ${fa_prefix}_collapsed.fa -t ${fa_prefix}_map.arf -v
-//         """
-// }
+        """
+        zcat ${reads} > ${fa_prefix}.fa
+        mapper.pl ${fa_prefix}.fa -e -h -j -l 18 -m -p ref_bowtie -s ${fa_prefix}_collapsed.fa -t ${fa_prefix}_map.arf -v
+        """
+}
 //
 //
 // // Mirdeep2 mirdeep2.pl

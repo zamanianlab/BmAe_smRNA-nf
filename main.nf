@@ -15,8 +15,8 @@ fq_set = Channel.fromPath(data + "reads/*.fastq.gz")
 
 // ** - Define paraemeters and auxillary files
 // adapters = file("auxillary/TruSeq3-SE.fa")
-rRNAs = file(GHdata + "smRNA/rRNA/ascaris_suum_rRNA.fasta")
-tRNAs = file(GHdata + "smRNA/tRNA/ascaris_suum_tRNA.fasta")
+// rRNAs = file(GHdata + "smRNA/rRNA/ascaris_suum_rRNA.fasta")
+// tRNAs = file(GHdata + "smRNA/tRNA/ascaris_suum_tRNA.fasta")
 bm_miRNAs_mature = file(GHdata + "smRNA/miRNA/brugia_malayi_mature_b.fasta")
 bm_miRNAs_prec = file(GHdata + "smRNA/miRNA/brugia_malayi_stemloop_b.fasta")
 ce_miRNAs_mature = file(GHdata + "smRNA/miRNA/caenorhabditis_elegans_mature_b.fasta")
@@ -64,190 +64,190 @@ host_ref.into { host_bwa; host_bowtie; host_mirdeep }
 
 
 
-//TRIM READS
-process trimmomatic {
-    cpus large_core
-    tag { id }
-
-    publishDir "output/", mode: 'copy', pattern: '*_trimout.txt'
-
-    input:
-        set val(id), file(id) from fq_set
-        set val(id), file(forward), file(reverse) from read_pairs
-
-    output:
-        file(name_out) into fq_trim
-        file("*_trimout.txt") into trim_log
-
-    script:
-    name_out = name.replace('.fastq.gz', '_trim.fq.gz')
-
-    """
-        trimmomatic SE -phred33 -threads ${large_core} ${reads} ${name_out} ILLUMINACLIP:${adapters}:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:15 &> ${reads}_trimout.txt
-        trimmomatic PE -threads ${large_core} $forward $reverse -baseout ${id}.fq.gz ILLUMINACLIP:/home/linuxbrew/.linuxbrew/Cellar/trimmomatic/0.36/share/trimmomatic/adapters/TruSeq3-PE.fa:2:80:10 MINLEN:50 &> ${reads}_trimout.txt
-    """
-}
-fq_trim.into { fq_trim1; fq_trim2; fq_trim3 }
-
-
-
-//INDEX GENOME - BWA
-process build_bwa_index {
-
-    publishDir "${output}/reference/", mode: 'copy'
-
-    cpus large_core
-
-    input:
-        file("reference.fa.gz") from reference_bwa
-
-    output:
-        file "reference.*" into bwa_indices
-
-    """
-        zcat reference.fa.gz > reference.fa
-        bwa index reference.fa
-    """
-}
-
-
-
-//INDEX GENOME - BOWTIE
-process build_bowtie_index {
-
-    publishDir "${output}/reference/", mode: 'copy'
-
-    cpus large_core
-
-    input:
-        file("reference.fa.gz") from reference_bowtie
-
-    output:
-        file "*.ebwt" into bowtie_indices
-
-    """
-        zcat reference.fa.gz > reference.fa
-        bowtie-build reference.fa ref_bowtie
-    """
-}
-
-
-
-// ALIGN TRIMMED READS TO GENOME (BWA)
-process align {
-    publishDir "${output}/stats/", mode: 'copy'
-
-    cpus large_core
-    tag { reads }
-
-    input:
-        file reads from fq_trim1
-        file bwaindex from bwa_indices.first()
-
-    output:
-        file("bwa_align.txt") into bwa_alignstats
-
-    script:
-        fa_prefix = reads[0].toString() - ~/(_trim)(\.fq\.gz)$/
-
-        """
-        bwa aln -o 0 -n 0 -t ${large_core} reference.fa ${reads} > ${fa_prefix}.sai
-        bwa samse reference.fa ${fa_prefix}.sai ${reads} > ${fa_prefix}.sam
-        samtools view -bS ${fa_prefix}.sam > ${fa_prefix}.unsorted.bam
-        samtools flagstat ${fa_prefix}.unsorted.bam
-        samtools sort -@ ${large_core} -o ${fa_prefix}.bam ${fa_prefix}.unsorted.bam
-        samtools index -b ${fa_prefix}.bam
-        samtools flagstat ${fa_prefix}.bam > bwa_align.txt
-        """
-}
-
-
-
-
-// Map rRNAs and tRNAs
-process map_rRNAs_tRNAs {
-    publishDir "${output}/stats/", mode: 'copy'
-
-    cpus large_core
-    tag { reads }
-
-    input:
-        file reads from fq_trim2
-        file rRNA_fa from rRNAs
-        file tRNA_fa from tRNAs
-
-    output:
-        file("bwa_rRNA_align.txt") into bwa_rRNA_alignstats
-        file("bwa_tRNA_align.txt") into bwa_tRNA_alignstats
-
-    script:
-        fa_prefix = reads[0].toString() - ~/(_trim)(\.fq\.gz)$/
-
-        """
-        bwa index ${rRNA_fa}
-
-        bwa aln -o 0 -n 0 -t ${large_core} ${rRNA_fa} ${reads} > ${fa_prefix}.sai
-        bwa samse ${rRNA_fa} ${fa_prefix}.sai ${reads} > ${fa_prefix}.sam
-        samtools view -bS ${fa_prefix}.sam > ${fa_prefix}.unsorted.bam
-        samtools flagstat ${fa_prefix}.unsorted.bam
-        samtools sort -@ ${large_core} -o ${fa_prefix}_rRNA.bam ${fa_prefix}.unsorted.bam
-        samtools index -b ${fa_prefix}_rRNA.bam
-        samtools flagstat ${fa_prefix}_rRNA.bam > bwa_rRNA_align.txt
-
-        bwa index ${tRNA_fa}
-
-        bwa aln -o 0 -n 0 -t ${large_core} ${tRNA_fa} ${reads} > ${fa_prefix}.sai
-        bwa samse ${tRNA_fa} ${fa_prefix}.sai ${reads} > ${fa_prefix}.sam
-        samtools view -bS ${fa_prefix}.sam > ${fa_prefix}.unsorted.bam
-        samtools flagstat ${fa_prefix}.unsorted.bam
-        samtools sort -@ ${large_core} -o ${fa_prefix}_tRNA.bam ${fa_prefix}.unsorted.bam
-        samtools index -b ${fa_prefix}_tRNA.bam
-        samtools flagstat ${fa_prefix}_tRNA.bam > bwa_tRNA_align.txt
-
-        """
-}
-
-
-
-// Mirdeep2 mapper.pl
-process mirDeep2_mapper {
-    cpus large_core
-    tag { reads }
-
-    input:
-        file reads from fq_trim3
-        file bowtieindex from bowtie_indices.first()
-
-    output:
-        file("${fa_prefix}_map.arf") into reads_vs_genome_arf
-        file("${fa_prefix}_collapsed.fa") into reads_collapsed
-
-    script:
-        fa_prefix = reads[0].toString() - ~/(_trim)(\.fq\.gz)$/
-
-        """
-        zcat ${reads} > ${fa_prefix}.fa
-        mapper.pl ${fa_prefix}.fa -e -h -j -l 18 -m -p ref_bowtie -s ${fa_prefix}_collapsed.fa -t ${fa_prefix}_map.arf -v
-        """
-}
-
-
-// Mirdeep2 mirdeep2.pl
-process mirDeep2_pl {
-    cpus large_core
-    tag { reads }
-
-    input:
-        file reads_vs_genome_arf from reads_vs_genome_arf
-        file("reference.fa.gz") from reference_mirdeep
-        file reads_collapsed from reads_collapsed
-
-        """
-        zcat reference.fa.gz > reference.fa
-        cat reference.fa | awk '{print \$1}' > reference_temp.fa
-        miRDeep2.pl ${reads_collapsed} reference_temp.fa ${reads_vs_genome_arf} ${as_miRNAs_mature} ${ce_miRNAs_mature} ${as_miRNAs_prec} -P
-        """
-}
+// //TRIM READS
+// process trimmomatic {
+//     cpus large_core
+//     tag { id }
+//
+//     publishDir "output/", mode: 'copy', pattern: '*_trimout.txt'
+//
+//     input:
+//         set val(id), file(id) from fq_set
+//         set val(id), file(forward), file(reverse) from read_pairs
+//
+//     output:
+//         file(name_out) into fq_trim
+//         file("*_trimout.txt") into trim_log
+//
+//     script:
+//     name_out = name.replace('.fastq.gz', '_trim.fq.gz')
+//
+//     """
+//         trimmomatic SE -phred33 -threads ${large_core} ${reads} ${name_out} ILLUMINACLIP:${adapters}:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:15 &> ${reads}_trimout.txt
+//         trimmomatic PE -threads ${large_core} $forward $reverse -baseout ${id}.fq.gz ILLUMINACLIP:/home/linuxbrew/.linuxbrew/Cellar/trimmomatic/0.36/share/trimmomatic/adapters/TruSeq3-PE.fa:2:80:10 MINLEN:50 &> ${reads}_trimout.txt
+//     """
+// }
+// fq_trim.into { fq_trim1; fq_trim2; fq_trim3 }
+//
+//
+//
+// //INDEX GENOME - BWA
+// process build_bwa_index {
+//
+//     publishDir "${output}/reference/", mode: 'copy'
+//
+//     cpus large_core
+//
+//     input:
+//         file("reference.fa.gz") from reference_bwa
+//
+//     output:
+//         file "reference.*" into bwa_indices
+//
+//     """
+//         zcat reference.fa.gz > reference.fa
+//         bwa index reference.fa
+//     """
+// }
+//
+//
+//
+// //INDEX GENOME - BOWTIE
+// process build_bowtie_index {
+//
+//     publishDir "${output}/reference/", mode: 'copy'
+//
+//     cpus large_core
+//
+//     input:
+//         file("reference.fa.gz") from reference_bowtie
+//
+//     output:
+//         file "*.ebwt" into bowtie_indices
+//
+//     """
+//         zcat reference.fa.gz > reference.fa
+//         bowtie-build reference.fa ref_bowtie
+//     """
+// }
+//
+//
+//
+// // ALIGN TRIMMED READS TO GENOME (BWA)
+// process align {
+//     publishDir "${output}/stats/", mode: 'copy'
+//
+//     cpus large_core
+//     tag { reads }
+//
+//     input:
+//         file reads from fq_trim1
+//         file bwaindex from bwa_indices.first()
+//
+//     output:
+//         file("bwa_align.txt") into bwa_alignstats
+//
+//     script:
+//         fa_prefix = reads[0].toString() - ~/(_trim)(\.fq\.gz)$/
+//
+//         """
+//         bwa aln -o 0 -n 0 -t ${large_core} reference.fa ${reads} > ${fa_prefix}.sai
+//         bwa samse reference.fa ${fa_prefix}.sai ${reads} > ${fa_prefix}.sam
+//         samtools view -bS ${fa_prefix}.sam > ${fa_prefix}.unsorted.bam
+//         samtools flagstat ${fa_prefix}.unsorted.bam
+//         samtools sort -@ ${large_core} -o ${fa_prefix}.bam ${fa_prefix}.unsorted.bam
+//         samtools index -b ${fa_prefix}.bam
+//         samtools flagstat ${fa_prefix}.bam > bwa_align.txt
+//         """
+// }
+//
+//
+//
+//
+// // Map rRNAs and tRNAs
+// process map_rRNAs_tRNAs {
+//     publishDir "${output}/stats/", mode: 'copy'
+//
+//     cpus large_core
+//     tag { reads }
+//
+//     input:
+//         file reads from fq_trim2
+//         file rRNA_fa from rRNAs
+//         file tRNA_fa from tRNAs
+//
+//     output:
+//         file("bwa_rRNA_align.txt") into bwa_rRNA_alignstats
+//         file("bwa_tRNA_align.txt") into bwa_tRNA_alignstats
+//
+//     script:
+//         fa_prefix = reads[0].toString() - ~/(_trim)(\.fq\.gz)$/
+//
+//         """
+//         bwa index ${rRNA_fa}
+//
+//         bwa aln -o 0 -n 0 -t ${large_core} ${rRNA_fa} ${reads} > ${fa_prefix}.sai
+//         bwa samse ${rRNA_fa} ${fa_prefix}.sai ${reads} > ${fa_prefix}.sam
+//         samtools view -bS ${fa_prefix}.sam > ${fa_prefix}.unsorted.bam
+//         samtools flagstat ${fa_prefix}.unsorted.bam
+//         samtools sort -@ ${large_core} -o ${fa_prefix}_rRNA.bam ${fa_prefix}.unsorted.bam
+//         samtools index -b ${fa_prefix}_rRNA.bam
+//         samtools flagstat ${fa_prefix}_rRNA.bam > bwa_rRNA_align.txt
+//
+//         bwa index ${tRNA_fa}
+//
+//         bwa aln -o 0 -n 0 -t ${large_core} ${tRNA_fa} ${reads} > ${fa_prefix}.sai
+//         bwa samse ${tRNA_fa} ${fa_prefix}.sai ${reads} > ${fa_prefix}.sam
+//         samtools view -bS ${fa_prefix}.sam > ${fa_prefix}.unsorted.bam
+//         samtools flagstat ${fa_prefix}.unsorted.bam
+//         samtools sort -@ ${large_core} -o ${fa_prefix}_tRNA.bam ${fa_prefix}.unsorted.bam
+//         samtools index -b ${fa_prefix}_tRNA.bam
+//         samtools flagstat ${fa_prefix}_tRNA.bam > bwa_tRNA_align.txt
+//
+//         """
+// }
+//
+//
+//
+// // Mirdeep2 mapper.pl
+// process mirDeep2_mapper {
+//     cpus large_core
+//     tag { reads }
+//
+//     input:
+//         file reads from fq_trim3
+//         file bowtieindex from bowtie_indices.first()
+//
+//     output:
+//         file("${fa_prefix}_map.arf") into reads_vs_genome_arf
+//         file("${fa_prefix}_collapsed.fa") into reads_collapsed
+//
+//     script:
+//         fa_prefix = reads[0].toString() - ~/(_trim)(\.fq\.gz)$/
+//
+//         """
+//         zcat ${reads} > ${fa_prefix}.fa
+//         mapper.pl ${fa_prefix}.fa -e -h -j -l 18 -m -p ref_bowtie -s ${fa_prefix}_collapsed.fa -t ${fa_prefix}_map.arf -v
+//         """
+// }
+//
+//
+// // Mirdeep2 mirdeep2.pl
+// process mirDeep2_pl {
+//     cpus large_core
+//     tag { reads }
+//
+//     input:
+//         file reads_vs_genome_arf from reads_vs_genome_arf
+//         file("reference.fa.gz") from reference_mirdeep
+//         file reads_collapsed from reads_collapsed
+//
+//         """
+//         zcat reference.fa.gz > reference.fa
+//         cat reference.fa | awk '{print \$1}' > reference_temp.fa
+//         miRDeep2.pl ${reads_collapsed} reference_temp.fa ${reads_vs_genome_arf} ${as_miRNAs_mature} ${ce_miRNAs_mature} ${as_miRNAs_prec} -P
+//         """
+// }
 
 
 

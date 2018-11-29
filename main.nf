@@ -75,7 +75,7 @@ process trimmomatic {
         set val(id), file(reads) from fq_set
 
     output:
-        set id, file("${id}_trim.fq.gz") into trim_fq_set
+        set id, file(id_out) into trim_fq_set
         file("*_trimout.txt") into trim_log
 
     script:

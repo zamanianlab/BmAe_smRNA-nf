@@ -14,7 +14,7 @@ fq_set = Channel.fromPath(data + "/*.fastq.gz")
                 .map { n -> [ n.getName(), n ] }
 
 // ** - Define paraemeters and auxillary files
-// adapters = file("auxillary/TruSeq3-SE.fa")
+adapters = file("auxillary/TruSeq3-SE.fa")
 // rRNAs = file(GHdata + "smRNA/rRNA/ascaris_suum_rRNA.fasta")
 // tRNAs = file(GHdata + "smRNA/tRNA/ascaris_suum_tRNA.fasta")
 bm_miRNAs_mature = file(GHdata + "smRNA/miRNA/brugia_malayi_mature_b.fasta")

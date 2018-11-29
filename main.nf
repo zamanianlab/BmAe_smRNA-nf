@@ -10,7 +10,7 @@ large_core=config.large_core
 small_core=config.small_core
 
 // ** - Fetch fqs; alternative suffixes
-fq_set = Channel.fromPath(data + "reads/*.fastq.gz")
+fq_set = Channel.fromPath(data + "/*.fastq.gz")
                 .map { n -> [ n.getName(), n ] }
 
 // ** - Define paraemeters and auxillary files
@@ -64,6 +64,28 @@ host_ref.into { host_bwa; host_bowtie; host_mirdeep }
 
 
 
+//** TRIM READS
+process trimmomatic {
+
+    cpus large_core
+    tag { id }
+    publishDir "output/", mode: 'copy', pattern: '*_trimout.txt'
+
+    input:
+        set val(id), file(id) from fq_set
+
+    output:
+        set id, file("${id}_trim.fq.gz") into trim_fq_set
+
+    script:
+    id_out = id.replace('.fastq.gz', '_trim.fq.gz')
+
+    """
+        trimmomatic SE -threads ${large_core} ${id}_trim.fq.gz ILLUMINACLIP:${adapters}:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:15 &> ${id}_trimout.txt
+    """
+    ////rm *U.fq.gz
+}
+
 // //TRIM READS
 // process trimmomatic {
 //     cpus large_core
@@ -83,7 +105,7 @@ host_ref.into { host_bwa; host_bowtie; host_mirdeep }
 //     name_out = name.replace('.fastq.gz', '_trim.fq.gz')
 //
 //     """
-//         trimmomatic SE -phred33 -threads ${large_core} ${reads} ${name_out} ILLUMINACLIP:${adapters}:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:15 &> ${reads}_trimout.txt
+//         trimmomatic SE -threads ${large_core} $id ${name_out} ILLUMINACLIP:${adapters}:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:15 &> ${reads}_trimout.txt
 //         trimmomatic PE -threads ${large_core} $forward $reverse -baseout ${id}.fq.gz ILLUMINACLIP:/home/linuxbrew/.linuxbrew/Cellar/trimmomatic/0.36/share/trimmomatic/adapters/TruSeq3-PE.fa:2:80:10 MINLEN:50 &> ${reads}_trimout.txt
 //     """
 // }

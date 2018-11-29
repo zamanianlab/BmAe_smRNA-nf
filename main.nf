@@ -137,34 +137,66 @@ process build_bowtie_index {
 }
 
 
+// ALIGN TRIMMED READS TO PARASITE GENOME (BWA)
+process align {
+    publishDir "${output}/bwa_stats/", mode: 'copy'
 
-// // ALIGN TRIMMED READS TO GENOME (BWA)
-// process align {
-//     publishDir "${output}/stats/", mode: 'copy'
-//
-//     cpus large_core
-//     tag { reads }
-//
-//     input:
-//         file reads from fq_trim1
-//         file bwaindex from bwa_indices.first()
-//
-//     output:
-//         file("bwa_align.txt") into bwa_alignstats
-//
-//     script:
-//         fa_prefix = reads[0].toString() - ~/(_trim)(\.fq\.gz)$/
-//
-//         """
-//         bwa aln -o 0 -n 0 -t ${large_core} reference.fa ${reads} > ${fa_prefix}.sai
-//         bwa samse reference.fa ${fa_prefix}.sai ${reads} > ${fa_prefix}.sam
-//         samtools view -bS ${fa_prefix}.sam > ${fa_prefix}.unsorted.bam
-//         samtools flagstat ${fa_prefix}.unsorted.bam
-//         samtools sort -@ ${large_core} -o ${fa_prefix}.bam ${fa_prefix}.unsorted.bam
-//         samtools index -b ${fa_prefix}.bam
-//         samtools flagstat ${fa_prefix}.bam > bwa_align.txt
-//         """
-// }
+    cpus large_core
+    tag { id }
+
+    input:
+        set val(id), file(reads) from fq_trim1
+        file parasite_bwaindex from parasite_bwa_indices.first()
+
+    output:
+        file("bwa_parasite_align.txt") into bwa_stats
+
+    script:
+        fa_prefix = reads[0].toString() - ~/(_trim)(\.fq\.gz)$/
+
+        """
+        bwa aln -o 0 -n 0 -t ${large_core} parasite.fa ${reads} > ${id}.sai
+        bwa samse parasite.fa ${id}.sai ${reads} > ${id}.sam
+        samtools view -bS ${id}.sam > ${id}.unsorted.bam
+        rm *.sam
+        samtools flagstat ${id}.unsorted.bam
+        samtools sort -@ ${large_core} -o ${id}.bam ${id}.unsorted.bam
+        rm *.unsorted.bam
+        samtools index -b ${id}.bam
+        samtools flagstat ${id}.bam > bwa_parasite_align.txt
+        """
+}
+
+// ALIGN TRIMMED READS TO HOST GENOME (BWA)
+process align {
+    publishDir "${output}/bwa_stats/", mode: 'copy'
+
+    cpus large_core
+    tag { id }
+
+    input:
+        set val(id), file(reads) from fq_trim2
+        file host_bwaindex from host_bwa_indices.first()
+
+    output:
+        file("bwa_host_align.txt") into bwa_stats
+
+    script:
+        fa_prefix = reads[0].toString() - ~/(_trim)(\.fq\.gz)$/
+
+        """
+        bwa aln -o 0 -n 0 -t ${large_core} host.fa ${reads} > ${id}.sai
+        bwa samse host.fa ${id}.sai ${reads} > ${id}.sam
+        samtools view -bS ${id}.sam > ${id}.unsorted.bam
+        rm *.sam
+        samtools flagstat ${id}.unsorted.bam
+        samtools sort -@ ${large_core} -o ${id}.bam ${id}.unsorted.bam
+        rm *.unsorted.bam
+        samtools index -b ${id}.bam
+        samtools flagstat ${id}.bam > bwa_host_align.txt
+        """
+}
+
 //
 //
 //

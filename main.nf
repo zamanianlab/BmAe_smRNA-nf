@@ -113,26 +113,26 @@ process build_bowtie_index {
 }
 
 // Mirdeep2 mapper.pl
-process mirDeep2_mapper {
-    cpus large_core
-    tag { id }
-
-    input:
-        set val(id), file(reads) from fq_trim_mirdeep
-        file bowtieindex from bowtie_indices.first()
-
-    output:
-        file("${fa_prefix}_map.arf") into reads_vs_genome_arf
-        file("${fa_prefix}_collapsed.fa") into reads_collapsed
-
-    script:
-        fa_prefix = reads[0].toString() - ~/(_trim)(\.fq\.gz)$/
-
-        """
-        zcat ${reads} > ${fa_prefix}.fa
-        mapper.pl ${fa_prefix}.fa -e -h -j -l 18 -m -p ref_bowtie -s ${fa_prefix}_collapsed.fa -t ${fa_prefix}_map.arf -v
-        """
-}
+// process mirDeep2_mapper {
+//     cpus large_core
+//     tag { id }
+//
+//     input:
+//         set val(id), file(reads) from fq_trim_mirdeep
+//         file bowtieindex from bowtie_indices.first()
+//
+//     output:
+//         file("${fa_prefix}_map.arf") into reads_vs_genome_arf
+//         file("${fa_prefix}_collapsed.fa") into reads_collapsed
+//
+//     script:
+//         fa_prefix = reads[0].toString() - ~/(_trim)(\.fq\.gz)$/
+//
+//         """
+//         zcat ${reads} > ${fa_prefix}.fa
+//         mapper.pl ${fa_prefix}.fa -e -h -j -l 18 -m -p ref_bowtie -s ${fa_prefix}_collapsed.fa -t ${fa_prefix}_map.arf -v
+//         """
+// }
 //
 //
 // // Mirdeep2 mirdeep2.pl

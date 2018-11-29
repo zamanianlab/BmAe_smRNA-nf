@@ -69,7 +69,7 @@ process trimmomatic {
 
     cpus large_core
     tag { id }
-    publishDir "output/", mode: 'copy', pattern: '*_trimout.txt'
+    publishDir "${output}/trim_stats/", mode: 'copy', pattern: '*_trimout.txt'
 
     input:
         set val(id), file(reads) from fq_set

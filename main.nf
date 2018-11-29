@@ -57,7 +57,7 @@ process fetch_host_ref {
 
     """
         echo '${hosturl}'
-        wget -nc -O ${hosturl} > host.fa.gz
+        wget ${hosturl} -O host.fa.gz
     """
 }
 host_ref.into { host_bwa; host_bowtie; host_mirdeep }

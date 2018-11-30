@@ -89,7 +89,7 @@ fq_trim.into { fq_trim_bwa; fq_trim_bowtie; fq_trim_contam; fq_trim_mirdeepMAP_P
 
 
 //INDEX PARASITE GENOME - BOWTIE
-process build_bowtie_index {
+process bowtie_index_parasite {
 
     publishDir "${output}/reference/", mode: 'copy'
 
@@ -111,7 +111,7 @@ process build_bowtie_index {
 
 
 // Mirdeep2 mapper.pl (parasite genome)
-process mirDeep2_mapper {
+process mirDeep2_mapper_parasite {
     cpus large_core
     tag { id }
 
@@ -158,7 +158,7 @@ process quantifier_pl_parasite {
 
 
 //INDEX HOST GENOMES - BOWTIE
-process build_bowtie_index {
+process bowtie_index_host {
 
     publishDir "${output}/reference/", mode: 'copy'
 
@@ -179,7 +179,7 @@ process build_bowtie_index {
 }
 
 // Mirdeep2 mapper.pl (host genome)
-process mirDeep2_mapper {
+process mirDeep2_mapper_host {
     cpus large_core
     tag { id }
 
@@ -203,7 +203,7 @@ reads_host_collapsed.into { reads_host_collapsed_Q; reads_host_collapsed_M}
 
 
 // Mirdeep2 quantifier.pl (map to predefined host mature/precursor seqs)
-process quantifier_pl_parasite {
+process quantifier_pl_host {
 
     publishDir "${output}/quantifier_host/${fa_prefix}/", mode: 'copy'
 

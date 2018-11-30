@@ -122,6 +122,9 @@ process quantifier_pl_parasite {
     input:
         set val(id), file(reads) from fq_trim_mirdeepQ1
 
+    script:
+        fa_prefix = reads[0].toString() - ~/(_trim)(\.fq\.gz)$/
+
         """
         zcat ${reads} > ${fa_prefix}.fa
         quantifier.pl -p ${bm_miRNAs_prec} -m ${bm_miRNAs_mature} -r ${fa_prefix}.fa -y now
@@ -137,6 +140,9 @@ process quantifier_pl_host {
 
     input:
         set val(id), file(reads) from fq_trim_mirdeepQ2
+
+    script:
+        fa_prefix = reads[0].toString() - ~/(_trim)(\.fq\.gz)$/
 
         """
         zcat ${reads} > ${fa_prefix}.fa

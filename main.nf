@@ -140,14 +140,14 @@ process mirDeep2_pl {
     tag { reads }
 
     input:
-        file reads_vs_genome_arf from reads_vs_parasite_genome_arf
         file("parasite.fa.gz") from parasite_mirdeep
+        file reads_vs_parasite_genome_arf from reads_vs_parasite_genome_arf
         file reads_parasite_collapsed from reads_parasite_collapsed
 
         """
         zcat parasite.fa.gz > parasite.fa
-        cat parasite.fa | awk '{print \$1}' > reference_temp.fa
-        miRDeep2.pl ${reads_parasite_collapsed} reference_temp.fa ${reads_vs_parasite_genome_arf} ${bm_miRNAs_mature} ${ce_miRNAs_mature} ${bm_miRNAs_prec} -P
+        cat parasite.fa | awk '{print \$1}' > parasite_temp.fa
+        miRDeep2.pl ${reads_parasite_collapsed} parasite_temp.fa ${reads_vs_parasite_genome_arf} ${bm_miRNAs_mature} ${ce_miRNAs_mature} ${bm_miRNAs_prec} -P
         """
 }
 

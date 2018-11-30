@@ -97,22 +97,20 @@ process build_bowtie_index {
 
     input:
         file("parasite.fa.gz") from parasite_bowtie
-        // file("host.fa.gz") from host_bowtie
 
     output:
         file "parasite_bowtie*.ebwt" into parasite_bowtie_indices
-        // file "host_bowtie*.ebwt" into host_bowtie_indices
+
+    script:
 
     """
         zcat parasite.fa.gz > parasite.fa
         bowtie-build parasite.fa parasite_bowtie
     """
-    //        zcat host.fa.gz > host.fa
-      //      bowtie-build host.fa host_bowtie
 }
 
 
-// Mirdeep2 mapper.pl
+// Mirdeep2 mapper.pl (parasite genome)
 process mirDeep2_mapper {
     cpus large_core
     tag { id }
@@ -140,10 +138,10 @@ process quantifier_pl_parasite {
 
     publishDir "${output}/quantifier_parasite/", mode: 'copy'
     cpus large_core
-    tag { reads }
+    tag { collapsed_reads }
 
     input:
-        set val(id), file(collapsed_reads) from reads_parasite_collapsed_Q
+        file collapsed_reads from reads_parasite_collapsed_Q
 
     script:
 

@@ -85,7 +85,7 @@ process trimmomatic {
 
     """
 }
-fq_trim.into { fq_trim_bwa; fq_trim_bowtie; fq_trim_contam; fq_trim_mirdeepQ1; ; fq_trim_mirdeepQ2}
+fq_trim.into { fq_trim_bwa; fq_trim_bowtie; fq_trim_contam; fq_trim_mirdeepMAP; ; fq_trim_mirdeepMIR}
 
 
 //INDEX GENOMES - BOWTIE
@@ -112,6 +112,29 @@ process build_bowtie_index {
 }
 
 
+// Mirdeep2 mapper.pl
+process mirDeep2_mapper {
+    cpus large_core
+    tag { id }
+
+    input:
+        set val(id), file(reads) from fq_trim_mirdeepMAP
+        file bowtieindex from parasite_bowtie_indices.first()
+
+    output:
+        file("${fa_prefix}_parasite_map.arf") into reads_vs_parasite_genome_arf
+        file("${fa_prefix}_parasite_collapsed.fa") into reads_parasite_collapsed
+
+    script:
+        fa_prefix = reads[0].toString() - ~/(_trim)(\.fq\.gz)$/
+
+        """
+        zcat ${reads} > ${fa_prefix}.fa
+        mapper.pl ${fa_prefix}.fa -e -h -j -l 18 -m -p parasite_bowtie -s ${fa_prefix}_parasite_collapsed.fa -t ${fa_prefix}_parasite_map.arf -v
+        """
+}
+reads_parasite_collapsed.into { reads_parasite_collapsed_Q; reads_parasite_collapsed_M}
+
 // Mirdeep2 quantifier.pl (map to predefined parasite mature/precursor seqs)
 process quantifier_pl_parasite {
 
@@ -120,59 +143,37 @@ process quantifier_pl_parasite {
     tag { reads }
 
     input:
-        set val(id), file(reads) from fq_trim_mirdeepQ1
+        set val(id), file(collapsed_reads) from reads_parasite_collapsed_Q
 
     script:
-        fa_prefix = reads[0].toString() - ~/(_trim)(\.fq\.gz)$/
 
         """
         zcat ${reads} > ${fa_prefix}.fa
-        quantifier.pl -p ${bm_miRNAs_prec} -m ${bm_miRNAs_mature} -r ${fa_prefix}.fa -y now
+        quantifier.pl -p ${bm_miRNAs_prec} -m ${bm_miRNAs_mature} -r ${collapsed_reads} -y now
         """
 }
 
-// Mirdeep2 quantifier.pl (map to predefined host mature/precursor seqs)
-process quantifier_pl_host {
-
-    publishDir "${output}/quantifier_host/", mode: 'copy'
-    cpus large_core
-    tag { reads }
-
-    input:
-        set val(id), file(reads) from fq_trim_mirdeepQ2
-
-    script:
-        fa_prefix = reads[0].toString() - ~/(_trim)(\.fq\.gz)$/
-
-        """
-        zcat ${reads} > ${fa_prefix}.fa
-        quantifier.pl -p ${ae_miRNAs_prec} -m ${ae_miRNAs_mature} -r ${fa_prefix}.fa -y now
-        """
-}
-
-
-// // Mirdeep2 mapper.pl
-// process mirDeep2_mapper {
+// // Mirdeep2 quantifier.pl (map to predefined host mature/precursor seqs)
+// process quantifier_pl_host {
+//
+//     publishDir "${output}/quantifier_host/", mode: 'copy'
 //     cpus large_core
-//     tag { id }
+//     tag { reads }
 //
 //     input:
-//         set val(id), file(reads) from fq_trim_mirdeep
-//         file bowtieindex from parasite_bowtie_indices.first()
-//
-//     output:
-//         file("${fa_prefix}_parasite_map.arf") into reads_vs_parasite_genome_arf
-//         file("${fa_prefix}_parasite_collapsed.fa") into reads_parasite_collapsed
+//         set val(id), file(reads) from fq_trim_mirdeepQ2
 //
 //     script:
 //         fa_prefix = reads[0].toString() - ~/(_trim)(\.fq\.gz)$/
 //
 //         """
 //         zcat ${reads} > ${fa_prefix}.fa
-//         mapper.pl ${fa_prefix}.fa -e -h -j -l 18 -m -p parasite_bowtie -s ${fa_prefix}_parasite_collapsed.fa -t ${fa_prefix}_parasite_map.arf -v
+//         quantifier.pl -p ${ae_miRNAs_prec} -m ${ae_miRNAs_mature} -r ${fa_prefix}.fa -y now
 //         """
 // }
-//
+
+
+
 //
 //
 // // Mirdeep2 mirdeep2.pl

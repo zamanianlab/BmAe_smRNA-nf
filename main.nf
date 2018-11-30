@@ -136,14 +136,19 @@ reads_parasite_collapsed.into { reads_parasite_collapsed_Q; reads_parasite_colla
 // Mirdeep2 quantifier.pl (map to predefined parasite mature/precursor seqs)
 process quantifier_pl_parasite {
 
-    publishDir "${output}/quantifier_parasite/", mode: 'copy'
+    publishDir "${output}/quantifier_parasite/${fa_prefix}/", mode: 'copy'
+
     cpus large_core
     tag { collapsed_reads }
 
     input:
         file collapsed_reads from reads_parasite_collapsed_Q
 
+    output:
+        file * into quantifier_out
+
     script:
+        fa_prefix = collapsed_reads[0].toString() - ~/(_parasite_collapsed)(\.fa)$/
 
         """
         quantifier.pl -p ${bm_miRNAs_prec} -m ${bm_miRNAs_mature} -r ${collapsed_reads} -y now

@@ -111,7 +111,7 @@ process build_bowtie_index {
       //      bowtie-build host.fa host_bowtie
 }
 
-Mirdeep2 mapper.pl
+// Mirdeep2 mapper.pl
 process mirDeep2_mapper {
     cpus large_core
     tag { id }

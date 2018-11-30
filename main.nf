@@ -129,7 +129,7 @@ process mirDeep2_mapper {
 
         """
         zcat ${reads} > ${fa_prefix}.fa
-        mapper.pl ${fa_prefix}.fa -e -h -j -l 18 -m -p ref_bowtie -s ${fa_prefix}_parasite_collapsed.fa -t ${fa_prefix}_parasite_map.arf -v
+        mapper.pl ${fa_prefix}.fa -e -h -j -l 18 -m -p parasite_bowtie -s ${fa_prefix}_parasite_collapsed.fa -t ${fa_prefix}_parasite_map.arf -v
         """
 }
 

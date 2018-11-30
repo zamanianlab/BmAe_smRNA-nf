@@ -146,7 +146,6 @@ process quantifier_pl_parasite {
     script:
 
         """
-        zcat ${reads} > ${fa_prefix}.fa
         quantifier.pl -p ${bm_miRNAs_prec} -m ${bm_miRNAs_mature} -r ${collapsed_reads} -y now
         """
 }

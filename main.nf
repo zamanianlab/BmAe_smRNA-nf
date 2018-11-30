@@ -146,7 +146,7 @@ process quantifier_pl_parasite {
         file collapsed_reads from reads_parasite_collapsed_Q
 
     output:
-        file "*" into quantifier_out
+        file "*" into quantifier_paraste_out
 
     script:
         fa_prefix = collapsed_reads[0].toString() - ~/(_parasite_collapsed)(\.fa)$/
@@ -214,7 +214,7 @@ process quantifier_pl_host {
         file collapsed_reads from reads_host_collapsed_Q
 
     output:
-        file "*" into quantifier_out
+        file "*" into quantifier_host_out
 
     script:
         fa_prefix = collapsed_reads[0].toString() - ~/(_host_collapsed)(\.fa)$/

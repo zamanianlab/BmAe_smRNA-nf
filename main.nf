@@ -44,23 +44,22 @@ process fetch_parasite_ref {
 }
 parasite_ref.into { parasite_bwa; parasite_bowtie; parasite_mirdeep }
 
-
 // ** - Fetch host genome (fa.gz)
 hosturl="https://www.vectorbase.org/download/aedes-aegypti-lvpagwgchromosomesaaegl5fagz"
 
-process fetch_host_ref {
-
-    publishDir "${output}/reference/", mode: 'copy'
-
-    output:
-        file("host.fa.gz") into host_ref
-
-    """
-        echo '${hosturl}'
-        wget ${hosturl} -O host.fa.gz
-    """
-}
-host_ref.into { host_bwa; host_bowtie; host_mirdeep }
+// process fetch_host_ref {
+//
+//     publishDir "${output}/reference/", mode: 'copy'
+//
+//     output:
+//         file("host.fa.gz") into host_ref
+//
+//     """
+//         echo '${hosturl}'
+//         wget ${hosturl} -O host.fa.gz
+//     """
+// }
+// host_ref.into { host_bwa; host_bowtie; host_mirdeep }
 
 
 
@@ -98,59 +97,59 @@ process build_bowtie_index {
 
     input:
         file("parasite.fa.gz") from parasite_bowtie
-        file("host.fa.gz") from host_bowtie
+        // file("host.fa.gz") from host_bowtie
 
     output:
         file "parasite_bowtie*.ebwt" into parasite_bowtie_indices
-        file "host_bowtie*.ebwt" into host_bowtie_indices
+        // file "host_bowtie*.ebwt" into host_bowtie_indices
 
     """
         zcat parasite.fa.gz > parasite.fa
         bowtie-build parasite.fa parasite_bowtie
-        zcat host.fa.gz > host.fa
-        bowtie-build host.fa host_bowtie
     """
+    //        zcat host.fa.gz > host.fa
+      //      bowtie-build host.fa host_bowtie
 }
 
-// Mirdeep2 mapper.pl
-// process mirDeep2_mapper {
-//     cpus large_core
-//     tag { id }
-//
-//     input:
-//         set val(id), file(reads) from fq_trim_mirdeep
-//         file bowtieindex from bowtie_indices.first()
-//
-//     output:
-//         file("${fa_prefix}_map.arf") into reads_vs_genome_arf
-//         file("${fa_prefix}_collapsed.fa") into reads_collapsed
-//
-//     script:
-//         fa_prefix = reads[0].toString() - ~/(_trim)(\.fq\.gz)$/
-//
-//         """
-//         zcat ${reads} > ${fa_prefix}.fa
-//         mapper.pl ${fa_prefix}.fa -e -h -j -l 18 -m -p ref_bowtie -s ${fa_prefix}_collapsed.fa -t ${fa_prefix}_map.arf -v
-//         """
-// }
-//
-//
-// // Mirdeep2 mirdeep2.pl
-// process mirDeep2_pl {
-//     cpus large_core
-//     tag { reads }
-//
-//     input:
-//         file reads_vs_genome_arf from reads_vs_genome_arf
-//         file("reference.fa.gz") from reference_mirdeep
-//         file reads_collapsed from reads_collapsed
-//
-//         """
-//         zcat reference.fa.gz > reference.fa
-//         cat reference.fa | awk '{print \$1}' > reference_temp.fa
-//         miRDeep2.pl ${reads_collapsed} reference_temp.fa ${reads_vs_genome_arf} ${as_miRNAs_mature} ${ce_miRNAs_mature} ${as_miRNAs_prec} -P
-//         """
-// }
+Mirdeep2 mapper.pl
+process mirDeep2_mapper {
+    cpus large_core
+    tag { id }
+
+    input:
+        set val(id), file(reads) from fq_trim_mirdeep
+        file bowtieindex from parasite_bowtie_indices.first()
+
+    output:
+        file("${fa_prefix}_parasite_map.arf") into reads_vs_parasite_genome_arf
+        file("${fa_prefix}_parasite_collapsed.fa") into reads_parasite_collapsed
+
+    script:
+        fa_prefix = reads[0].toString() - ~/(_trim)(\.fq\.gz)$/
+
+        """
+        zcat ${reads} > ${fa_prefix}.fa
+        mapper.pl ${fa_prefix}.fa -e -h -j -l 18 -m -p ref_bowtie -s ${fa_prefix}_parasite_collapsed.fa -t ${fa_prefix}_parasite_map.arf -v
+        """
+}
+
+
+// Mirdeep2 mirdeep2.pl
+process mirDeep2_pl {
+    cpus large_core
+    tag { reads }
+
+    input:
+        file reads_vs_genome_arf from reads_vs_parasite_genome_arf
+        file("parasite.fa.gz") from parasite_mirdeep
+        file reads_parasite_collapsed from reads_parasite_collapsed
+
+        """
+        zcat parasite.fa.gz > parasite.fa
+        cat parasite.fa | awk '{print \$1}' > reference_temp.fa
+        miRDeep2.pl ${reads_parasite_collapsed} reference_temp.fa ${reads_vs_parasite_genome_arf} ${bm_miRNAs_mature} ${ce_miRNAs_mature} ${bm_miRNAs_prec} -P
+        """
+}
 
 
 // //INDEX GENOMES - BWA

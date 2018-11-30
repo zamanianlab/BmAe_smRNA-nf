@@ -85,7 +85,7 @@ process trimmomatic {
 
     """
 }
-fq_trim.into { fq_trim_bwa; fq_trim_bowtie; fq_trim_contam; fq_trim_mirdeep }
+fq_trim.into { fq_trim_bwa; fq_trim_bowtie; fq_trim_contam; fq_trim_mirdeepQ1; ; fq_trim_mirdeepQ2}
 
 
 //INDEX GENOMES - BOWTIE
@@ -111,45 +111,80 @@ process build_bowtie_index {
       //      bowtie-build host.fa host_bowtie
 }
 
-// Mirdeep2 mapper.pl
-process mirDeep2_mapper {
-    cpus large_core
-    tag { id }
 
-    input:
-        set val(id), file(reads) from fq_trim_mirdeep
-        file bowtieindex from parasite_bowtie_indices.first()
+// Mirdeep2 quantifier.pl (map to predefined parasite mature/precursor seqs)
+process quantifier_pl_parasite {
 
-    output:
-        file("${fa_prefix}_parasite_map.arf") into reads_vs_parasite_genome_arf
-        file("${fa_prefix}_parasite_collapsed.fa") into reads_parasite_collapsed
-
-    script:
-        fa_prefix = reads[0].toString() - ~/(_trim)(\.fq\.gz)$/
-
-        """
-        zcat ${reads} > ${fa_prefix}.fa
-        mapper.pl ${fa_prefix}.fa -e -h -j -l 18 -m -p parasite_bowtie -s ${fa_prefix}_parasite_collapsed.fa -t ${fa_prefix}_parasite_map.arf -v
-        """
-}
-
-
-// Mirdeep2 mirdeep2.pl
-process mirDeep2_pl {
+    publishDir "${output}/quantifier_parasite/", mode: 'copy'
     cpus large_core
     tag { reads }
 
     input:
-        file("parasite.fa.gz") from parasite_mirdeep
-        file reads_vs_parasite_genome_arf from reads_vs_parasite_genome_arf
-        file reads_parasite_collapsed from reads_parasite_collapsed
+        set val(id), file(reads) from fq_trim_mirdeepQ1
 
         """
-        zcat parasite.fa.gz > parasite.fa
-        cat parasite.fa | awk '{print \$1}' > parasite_temp.fa
-        miRDeep2.pl ${reads_parasite_collapsed} parasite_temp.fa ${reads_vs_parasite_genome_arf} ${bm_miRNAs_mature} ${ce_miRNAs_mature} ${bm_miRNAs_prec} -P
+        zcat ${reads} > ${fa_prefix}.fa
+        quantifier.pl -p ${bm_miRNAs_prec} -m ${bm_miRNAs_mature} -r ${fa_prefix}.fa -y now
         """
 }
+
+// Mirdeep2 quantifier.pl (map to predefined host mature/precursor seqs)
+process quantifier_pl_host {
+
+    publishDir "${output}/quantifier_host/", mode: 'copy'
+    cpus large_core
+    tag { reads }
+
+    input:
+        set val(id), file(reads) from fq_trim_mirdeepQ2
+
+        """
+        zcat ${reads} > ${fa_prefix}.fa
+        quantifier.pl -p ${ae_miRNAs_prec} -m ${ae_miRNAs_mature} -r ${fa_prefix}.fa -y now
+        """
+}
+
+
+// // Mirdeep2 mapper.pl
+// process mirDeep2_mapper {
+//     cpus large_core
+//     tag { id }
+//
+//     input:
+//         set val(id), file(reads) from fq_trim_mirdeep
+//         file bowtieindex from parasite_bowtie_indices.first()
+//
+//     output:
+//         file("${fa_prefix}_parasite_map.arf") into reads_vs_parasite_genome_arf
+//         file("${fa_prefix}_parasite_collapsed.fa") into reads_parasite_collapsed
+//
+//     script:
+//         fa_prefix = reads[0].toString() - ~/(_trim)(\.fq\.gz)$/
+//
+//         """
+//         zcat ${reads} > ${fa_prefix}.fa
+//         mapper.pl ${fa_prefix}.fa -e -h -j -l 18 -m -p parasite_bowtie -s ${fa_prefix}_parasite_collapsed.fa -t ${fa_prefix}_parasite_map.arf -v
+//         """
+// }
+//
+//
+//
+// // Mirdeep2 mirdeep2.pl
+// process mirDeep2_pl {
+//     cpus large_core
+//     tag { reads }
+//
+//     input:
+//         file("parasite.fa.gz") from parasite_mirdeep
+//         file reads_vs_parasite_genome_arf from reads_vs_parasite_genome_arf
+//         file reads_parasite_collapsed from reads_parasite_collapsed
+//
+//         """
+//         zcat parasite.fa.gz > parasite.fa
+//         cat parasite.fa | awk '{print \$1}' > parasite_temp.fa
+//         miRDeep2.pl ${reads_parasite_collapsed} parasite_temp.fa ${reads_vs_parasite_genome_arf} ${bm_miRNAs_mature} ${ce_miRNAs_mature} ${bm_miRNAs_prec} -P
+//         """
+// }
 
 
 // //INDEX GENOMES - BWA
@@ -246,240 +281,4 @@ process mirDeep2_pl {
 //         samtools flagstat ${fa_prefix}_tRNA.bam > bwa_tRNA_align.txt
 //
 //         """
-// }
-
-
-
-
-//** - ALIGNMENT AND STRINGTIE (combined)
-// process align_stringtie {
-
-//     publishDir "${output}/expression", mode: 'copy'
-
-//     cpus large_core
-
-//     tag { id }
-
-//     input:
-//         set val(id), file(forward), file(reverse) from read_pairs
-//         file("geneset.gtf.gz") from mm_gtf
-//         //file("genome_tran.5.ht2"), file("genome_tran.3.ht2"), file("genome_tran.4.ht2"), file("genome_tran.6.ht2"), file("genome_tran.1.ht2"), file("genome_tran.8.ht2"), file("genome_tran.2.ht2"), file("genome_tran.7.ht2") from hs2_indices
-
-//     output:
-//         file "${id}.hisat2_log.txt" into alignment_logs
-//         file("${id}/*") into stringtie_exp
-
-//     //script:
-//      //   index_base = hs2_indices[0].toString() - ~/.\d.ht2/
-
-//     """
-//         hisat2 -p ${large_core} -x '/home/BIOTECH/zamanian/GitHub/AsELV_RNAseq-nf/data/reference/grcm38_tran/genome_tran' -1 ${forward} -2 ${reverse} -S ${id}.sam --rg-id "${id}" --rg "SM:${id}" --rg "PL:ILLUMINA" 2> ${id}.hisat2_log.txt
-//         samtools view -bS ${id}.sam > ${id}.unsorted.bam
-//         rm *.sam
-//         samtools flagstat ${id}.unsorted.bam
-//         samtools sort -@ ${large_core} -o ${id}.bam ${id}.unsorted.bam
-//         rm *.unsorted.bam
-//         samtools index -b ${id}.bam
-//         zcat geneset.gtf.gz > geneset.gtf
-//         stringtie ${id}.bam -p ${large_core} -G geneset.gtf -A ${id}/${id}_abund.tab -e -B -o ${id}/${id}_expressed.gtf
-//         rm *.bam
-//         rm *.bam.bai
-//         rm *.gtf
-//     """
-// }
-
-
-
-//comment out until all else finished
-// prepDE = file("${aux}/scripts/prepDE.py")
-
-// process stringtie_table_counts {
-
-//     echo true
-
-//     publishDir "${output}/diffexp", mode: 'copy'
-
-//     cpus small_core
-
-//     output:
-//         file ("gene_count_matrix.csv") into gene_count_matrix
-//         file ("transcript_count_matrix.csv") into transcript_count_matrix
-
-//     """
-//         python ${prepDE} -i ${output}/expression -l 140 -g gene_count_matrix.csv -t transcript_count_matrix.csv
-
-//     """
-// }
-
-
-
-
-
-
-
-
-// // // // // // // // // // // // // // // // // IGNORE BELOW
-
-// ** - Recurse through subdirectories to get all fastqs
-// fq_set = Channel.fromPath(data + "fq/*.fastq.gz")
-//                 .map { n -> [ n.getName(), n ] }
-
-// SKIP TRIMMING (READS ARE ALREADY TRIMMED)
-// process trim {
-
-//     tag { fq_id }
-
-//     publishDir "${data}/fq_trim/", mode: 'move'
-
-//     input:
-//         set fq_id, file(forward), file(reverse) from read_pairs
-
-//     output:
-//         set file("${fq_id}_1P.fq.gz"), file("${fq_id}_2P.fq.gz") into trim_output
-//         //file "${fq_id}.trim_log.txt" into trim_logs
-
-//     """
-//     trimmomatic PE -threads ${large_core} $forward $reverse -baseout ${fq_id}.fq.gz ILLUMINACLIP:/home/linuxbrew/.linuxbrew/Cellar/trimmomatic/0.36/share/trimmomatic/adapters/TruSeq3-PE.fa:2:80:10 MINLEN:75
-//     rm ${fq_id}_1U.fq.gz
-//     rm ${fq_id}_2U.fq.gz
-//     """
-
-// }
-
-
-// process trimmomatic {
-
-//     cpus small_core
-
-//     tag { name }
-
-//     input:
-//         set val(name), file(reads) from fq_set
-
-//     output:
-//         file(name_out) into trimmed_reads
-
-//     script:
-//     name_out = name.replace('.fastq.gz', '_trim.fq.gz')
-
-//     """
-//         trimmomatic SE -phred33 -threads ${small_core} ${reads} ${name_out} ILLUMINACLIP:TruSeq3-SE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:15
-//     """
-// }
-
-
-
-
-
-
-
-// process stringtie_counts {
-
-//     publishDir "output/expression", mode: 'copy'
-
-//     cpus small_core
-
-//     tag { srid }
-
-//     input:
-//         set val(srid), file(bam), file(bai) from hisat2_bams
-//         file("geneset.gtf.gz") from geneset_stringtie.first()
-
-//     output:
-//         file("${srid}/*") into stringtie_exp
-
-//     """
-//         zcat geneset.gtf.gz > geneset.gtf
-//         stringtie -p ${small_core} -G geneset.gtf -A ${srid}/${srid}_abund.tab -e -B -o ${srid}/${srid}_expressed.gtf ${bam}
-//     """
-// }
-
-
-
-// // ** - ALIGNMENT
-// process align {
-
-//     cpus small_core
-
-//     tag { srid }
-
-//     input:
-//         set val(srid), file(forward), file(reverse) from read_pairs
-//         file hs2_indices from hs2_indices.first()
-
-//     output:
-//         set val(srid), file("${srid}.bam"), file("${srid}.bam.bai") into hisat2_bams
-//         file "${srid}.hisat2_log.txt" into alignment_logs
-
-//     script:
-//         index_base = hs2_indices[0].toString() - ~/.\d.ht2/
-
-//     """
-//         hisat2 -p ${small_core} -x $index_base -1 ${forward} -2 ${reverse} -S ${srid}.sam --rg-id "${srid}" --rg "SM:${srid}" --rg "PL:ILLUMINA" 2> ${srid}.hisat2_log.txt
-//         samtools view -bS ${srid}.sam > ${srid}.unsorted.bam
-//         samtools flagstat ${srid}.unsorted.bam
-//         samtools sort -@ ${small_core} -o ${srid}.bam ${srid}.unsorted.bam
-//         samtools index -b ${srid}.bam
-//         rm *sam
-//         rm *unsorted.bam
-
-//     """
-// }
-
-
-
-// process stringtie_counts {
-
-//     publishDir "output/expression", mode: 'copy'
-
-//     cpus small_core
-
-//     tag { srid }
-
-//     input:
-//         set val(srid), file(bam), file(bai) from hisat2_bams
-//         file("geneset.gtf.gz") from geneset_stringtie.first()
-
-//     output:
-//         file("${srid}/*") into stringtie_exp
-
-//     """
-//         zcat geneset.gtf.gz > geneset.gtf
-//         stringtie -p ${small_core} -G geneset.gtf -A ${srid}/${srid}_abund.tab -e -B -o ${srid}/${srid}_expressed.gtf ${bam}
-//     """
-// }
-
-
-
-// prepDE = file("auxillary/scripts/prepDE.py")
-
-// process stringtie_table_counts {
-
-//     echo true
-
-//     publishDir "output/diffexp", mode: 'copy'
-
-//     cpus small_core
-
-//     tag { sample_id }
-
-//     input:
-//         val(sample_file) from stringtie_exp.toSortedList()
-
-//     output:
-//         file ("gene_count_matrix.csv") into gene_count_matrix
-//         file ("transcript_count_matrix.csv") into transcript_count_matrix
-
-//     """
-//         for i in ${sample_file.flatten().join(" ")}; do
-//             bn=`basename \${i}`
-//             full_path=`dirname \${i}`
-//             sample_name=\${full_path##*/}
-//             echo "\${sample_name} \${i}"
-//             mkdir -p expression/\${sample_name}
-//             ln -s \${i} expression/\${sample_name}/\${bn}
-//         done;
-//         python ${prepDE} -i expression -l 50 -g gene_count_matrix.csv -t transcript_count_matrix.csv
-
-//     """
 // }

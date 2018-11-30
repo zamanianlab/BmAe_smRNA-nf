@@ -47,19 +47,19 @@ parasite_ref.into { parasite_bwa; parasite_bowtie; parasite_mirdeep }
 // ** - Fetch host genome (fa.gz)
 hosturl="https://www.vectorbase.org/download/aedes-aegypti-lvpagwgchromosomesaaegl5fagz"
 
-// process fetch_host_ref {
-//
-//     publishDir "${output}/reference/", mode: 'copy'
-//
-//     output:
-//         file("host.fa.gz") into host_ref
-//
-//     """
-//         echo '${hosturl}'
-//         wget ${hosturl} -O host.fa.gz
-//     """
-// }
-// host_ref.into { host_bwa; host_bowtie; host_mirdeep }
+process fetch_host_ref {
+
+    publishDir "${output}/reference/", mode: 'copy'
+
+    output:
+        file("host.fa.gz") into host_ref
+
+    """
+        echo '${hosturl}'
+        wget ${hosturl} -O host.fa.gz
+    """
+}
+host_ref.into { host_bwa; host_bowtie; host_mirdeep }
 
 
 
@@ -85,10 +85,10 @@ process trimmomatic {
 
     """
 }
-fq_trim.into { fq_trim_bwa; fq_trim_bowtie; fq_trim_contam; fq_trim_mirdeepMAP; ; fq_trim_mirdeepMIR}
+fq_trim.into { fq_trim_bwa; fq_trim_bowtie; fq_trim_contam; fq_trim_mirdeepMAP_P; fq_trim_mirdeepMIR_P ; fq_trim_mirdeepMAP_H; fq_trim_mirdeepMIR_H}
 
 
-//INDEX GENOMES - BOWTIE
+//INDEX PARASITE GENOME - BOWTIE
 process build_bowtie_index {
 
     publishDir "${output}/reference/", mode: 'copy'
@@ -116,7 +116,7 @@ process mirDeep2_mapper {
     tag { id }
 
     input:
-        set val(id), file(reads) from fq_trim_mirdeepMAP
+        set val(id), file(reads) from fq_trim_mirdeepMAP_P
         file bowtieindex from parasite_bowtie_indices.first()
 
     output:
@@ -132,6 +132,7 @@ process mirDeep2_mapper {
         """
 }
 reads_parasite_collapsed.into { reads_parasite_collapsed_Q; reads_parasite_collapsed_M}
+
 
 // Mirdeep2 quantifier.pl (map to predefined parasite mature/precursor seqs)
 process quantifier_pl_parasite {
@@ -154,6 +155,75 @@ process quantifier_pl_parasite {
         quantifier.pl -p ${bm_miRNAs_prec} -m ${bm_miRNAs_mature} -r ${collapsed_reads} -y now
         """
 }
+
+
+//INDEX HOST GENOMES - BOWTIE
+process build_bowtie_index {
+
+    publishDir "${output}/reference/", mode: 'copy'
+
+    cpus large_core
+
+    input:
+        file("host.fa.gz") from host_bowtie
+
+    output:
+        file "host_bowtie*.ebwt" into host_bowtie_indices
+
+    script:
+
+    """
+        zcat host.fa.gz > host.fa
+        bowtie-build host.fa host_bowtie
+    """
+}
+
+// Mirdeep2 mapper.pl (host genome)
+process mirDeep2_mapper {
+    cpus large_core
+    tag { id }
+
+    input:
+        set val(id), file(reads) from fq_trim_mirdeepMAP_H
+        file bowtieindex from host_bowtie_indices.first()
+
+    output:
+        file("${fa_prefix}_host_map.arf") into reads_vs_host_genome_arf
+        file("${fa_prefix}_host_collapsed.fa") into reads_host_collapsed
+
+    script:
+        fa_prefix = reads[0].toString() - ~/(_trim)(\.fq\.gz)$/
+
+        """
+        zcat ${reads} > ${fa_prefix}.fa
+        mapper.pl ${fa_prefix}.fa -e -h -j -l 18 -m -p host_bowtie -s ${fa_prefix}_host_collapsed.fa -t ${fa_prefix}_host_map.arf -v
+        """
+}
+reads_host_collapsed.into { reads_host_collapsed_Q; reads_host_collapsed_M}
+
+
+// Mirdeep2 quantifier.pl (map to predefined host mature/precursor seqs)
+process quantifier_pl_parasite {
+
+    publishDir "${output}/quantifier_host/${fa_prefix}/", mode: 'copy'
+
+    cpus large_core
+    tag { collapsed_reads }
+
+    input:
+        file collapsed_reads from reads_host_collapsed_Q
+
+    output:
+        file "*" into quantifier_out
+
+    script:
+        fa_prefix = collapsed_reads[0].toString() - ~/(_host_collapsed)(\.fa)$/
+
+        """
+        quantifier.pl -p ${ae_miRNAs_prec} -m ${ae_miRNAs_mature} -r ${collapsed_reads} -y now
+        """
+}
+
 
 // // Mirdeep2 quantifier.pl (map to predefined host mature/precursor seqs)
 // process quantifier_pl_host {

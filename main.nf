@@ -62,30 +62,29 @@ process fetch_host_ref {
 host_ref.into { host_bwa; host_bowtie; host_mirdeep }
 
 
-
 //** TRIM READS
 process trimmomatic {
+    cpus small_core
+    tag { name }
 
-    cpus large_core
-    tag { id }
-    publishDir "${output}/trim_stats/", mode: 'copy', pattern: '*_trimout.txt'
+    publishDir "output/", mode: 'copy', pattern: '*_trimout.txt'
 
     input:
-        set val(id), file(reads) from fq_set
+        set val(name), file(reads) from fq_set
 
     output:
-        set id, file(id_out) into fq_trim
+        set val(name_out), file(name_out) into fq_trim
         file("*_trimout.txt") into trim_log
 
     script:
-    id_out = id.replace('.fastq.gz', '_trim.fq.gz')
+    name_out = name.replace('.fastq.gz', '_trim.fq.gz')
 
     """
-        trimmomatic SE -threads ${large_core} ${id} ${id_out} ILLUMINACLIP:${adapters}:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:15 &> ${id}_trimout.txt
-
+        trimmomatic SE -phred33 -threads ${large_core} ${reads} ${name_out} ILLUMINACLIP:${adapters}:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:15 &> ${reads}_trimout.txt
     """
 }
 fq_trim.into { fq_trim_bwa; fq_trim_bowtie; fq_trim_contam; fq_trim_mirdeepMAP_P; fq_trim_mirdeepMIR_P ; fq_trim_mirdeepMAP_H; fq_trim_mirdeepMIR_H}
+
 
 
 //INDEX PARASITE GENOME - BOWTIE
@@ -113,10 +112,10 @@ process bowtie_index_parasite {
 // Mirdeep2 mapper.pl (parasite genome)
 process mirDeep2_mapper_parasite {
     cpus large_core
-    tag { id }
+    tag { name }
 
     input:
-        set val(id), file(reads) from fq_trim_mirdeepMAP_P
+        set val(name), file(reads) from fq_trim_mirdeepMAP_P
         file bowtieindex from parasite_bowtie_indices.first()
 
     output:
@@ -131,7 +130,7 @@ process mirDeep2_mapper_parasite {
         mapper.pl ${fa_prefix}.fa -e -h -j -l 18 -m -p parasite_bowtie -s ${fa_prefix}_parasite_collapsed.fa -t ${fa_prefix}_parasite_map.arf -v
         """
 }
-reads_parasite_collapsed.into { reads_parasite_collapsed_Q; reads_parasite_collapsed_M}
+reads_parasite_collapsed.into {reads_parasite_collapsed_Q; reads_parasite_collapsed_M}
 
 
 // Mirdeep2 quantifier.pl (map to predefined parasite mature/precursor seqs)
@@ -181,10 +180,10 @@ process bowtie_index_host {
 // Mirdeep2 mapper.pl (host genome)
 process mirDeep2_mapper_host {
     cpus large_core
-    tag { id }
+    tag { name }
 
     input:
-        set val(id), file(reads) from fq_trim_mirdeepMAP_H
+        set val(name), file(reads) from fq_trim_mirdeepMAP_H
         file bowtieindex from host_bowtie_indices.first()
 
     output:
@@ -199,7 +198,7 @@ process mirDeep2_mapper_host {
         mapper.pl ${fa_prefix}.fa -e -h -j -l 18 -m -p host_bowtie -s ${fa_prefix}_host_collapsed.fa -t ${fa_prefix}_host_map.arf -v
         """
 }
-reads_host_collapsed.into { reads_host_collapsed_Q; reads_host_collapsed_M}
+reads_host_collapsed.into {reads_host_collapsed_Q; reads_host_collapsed_M}
 
 
 // Mirdeep2 quantifier.pl (map to predefined host mature/precursor seqs)

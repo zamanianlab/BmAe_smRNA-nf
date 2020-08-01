@@ -125,6 +125,6 @@ process mirDeep2_pl {
         file("genome.fa") from genome_fa
 
         """
-        miRDeep2.pl ${collapsed_reads} genome.fa ${reads_vs_genome_arf} ${aae_mature} -P
+        miRDeep2.pl ${collapsed_reads} genome.fa ${reads_vs_genome_arf} ${aae_mature} none ${aae_prec} -P
         """
 }

@@ -63,7 +63,7 @@ process fetch_ref {
     publishDir "${output}/reference/", mode: 'copy'
 
     output:
-        file("reference.fa.gz") into refrence.fa
+        file("reference.fa.gz") into reference_fa
 
     """
         echo '${hosturl}'

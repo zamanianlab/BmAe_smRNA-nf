@@ -36,11 +36,11 @@ process trim_reads {
    publishDir "${output}/trim_stats/", mode: 'copy', pattern: '*.json'
 
    input:
-       set val(id), file(reads) from fqs
+       tuple val(id), file(reads) from fqs
 
    output:
-       set id_out, file("${id_out}.fq.gz") into trimmed_fqs
-       set file("*.html"), file("*.json")  into trim_log
+       tuple id_out, file("${id_out}.fq.gz") into trimmed_fqs
+       tuple file("*.html"), file("*.json")  into trim_log
 
   script:
       id_out = id.replace('.fastq.gz', '')
@@ -57,10 +57,9 @@ trimmed_fqs.set { trimmed_reads_mirdeep }
 ////////////////////////////////////////////////
 // aedesgenome points to /mnt/genomes/Other/Aedes_aegypti/
 
-geneset_stringtie = file("${aedesgenome}/annotation/geneset_h.gtf.gz")
-genome_ref = file("${aedesgenome}/genome.fa")
-bwa_indices = Channel.fromPath("${aedesgenome}/BWAIndex/*") //.buffer(size:8)
-bowtie2_indices = Channel.fromPath("${aedesgenome}/bowtie2Index/*.bt2") //.buffer(size:8)
+geneset_gtf = file("${aedesgenome}/annotation/geneset_h.gtf.gz")
+genome_fa = file("${aedesgenome}/genome.fa")
+bowtie2_indices = Channel.fromPath("${aedesgenome}/bowtie2Index/*.bt2")
 
 aae_mature = file(aux + "mirbase/aae_mature.fa")
 aae_prec = file(aux + "mirbase/aae_pre.fa")
@@ -77,12 +76,12 @@ process mirDeep2_mapper_host {
     tag { id }
 
     input:
-        set val(id), file(reads) from trimmed_reads_mirdeep
+        tuple val(id), file(reads) from trimmed_reads_mirdeep
         file bowtieindex from bowtie2_indices.first()
 
     output:
         file("${id}_map.arf") into reads_vs_genome_arf
-        set val(id), file("${id}_collapsed.fa") into reads_collapsed
+        tuple val(id), file("${id}_collapsed.fa") into reads_collapsed
 
     script:
         index_base = bowtie2_indices[0].toString() - ~/.\d.bt2/
@@ -104,7 +103,7 @@ process quantifier_pl_host {
     tag { id }
 
     input:
-        set val(id), file(collapsed_reads) from reads_collapsed_Q
+        tuple val(id), file(collapsed_reads) from reads_collapsed_Q
 
     output:
         file "*" into quantifier_out

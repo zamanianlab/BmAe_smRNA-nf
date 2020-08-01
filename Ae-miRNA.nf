@@ -70,28 +70,28 @@ aae_prec = file(aux + "mirbase/aae_pre.fa")
 ////////////////////////////////////////////////
 
 // Mirdeep2 mapper.pl (map to genome)
-process mirDeep2_mapper {
-
-    cpus small_core
-    tag { id }
-
-    input:
-        tuple val(id), file(reads) from trimmed_reads_mirdeep
-        file bowtieindex from bowtie2_indices.first()
-
-    output:
-        file("${id}_map.arf") into reads_vs_genome_arf
-        tuple val(id), file("${id}_collapsed.fa") into reads_collapsed
-
-    script:
-        index_base = bowtie2_indices[0].toString() - ~/.\d.bt2/
-
-    """
-        zcat ${reads} > ${id}.fa
-        mapper.pl ${id}.fa -e -h -j -l 18 -m -p ${index_base} -s ${id}_collapsed.fa -t ${id}_map.arf -v
-    """
-}
-reads_collapsed.into {reads_collapsed_Q; reads_collapsed_M}
+// process mirDeep2_mapper {
+//
+//     cpus small_core
+//     tag { id }
+//
+//     input:
+//         tuple val(id), file(reads) from trimmed_reads_mirdeep
+//         file bowtieindex from bowtie2_indices.first()
+//
+//     output:
+//         file("${id}_map.arf") into reads_vs_genome_arf
+//         tuple val(id), file("${id}_collapsed.fa") into reads_collapsed
+//
+//     script:
+//         index_base = bowtie2_indices[0].toString() - ~/.\d.bt2/
+//
+//     """
+//         zcat ${reads} > ${id}.fa
+//         mapper.pl ${id}.fa -e -h -j -l 18 -m -p ${index_base} -s ${id}_collapsed.fa -t ${id}_map.arf -v
+//     """
+// }
+// reads_collapsed.into {reads_collapsed_Q; reads_collapsed_M}
 
 
 // Mirdeep2 quantifier.pl (map to predefined mature/precursor seqs)

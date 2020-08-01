@@ -115,7 +115,7 @@ process bwa_align {
 
     script:
         fa_prefix = reads[0].toString() - ~/(_trim)(\.fq\.gz)$/
-        index_base = bwa_indices[0].toString() - ~/.fa.[a-z]*/
+        index_base = bwa_indices[0].toString() - ~/.fa[.a-z]*/
 
         """
         bwa aln -o 0 -n 0 -t ${large_core} ${index_base}.fa ${reads} > ${id}.sai

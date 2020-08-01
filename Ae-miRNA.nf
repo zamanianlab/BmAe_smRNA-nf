@@ -62,8 +62,8 @@ genome_ref = file("${aedesgenome}/genome.fa")
 bwa_indices = Channel.fromPath("${aedesgenome}/BWAIndex/*") //.buffer(size:8)
 bowtie2_indices = Channel.fromPath("${aedesgenome}/bowtie2Index/*.bt2") //.buffer(size:8)
 
-ae_miRNAs_mature = file(GHdata + "smRNA/miRNA/aedes_aegypti_mature_b.fasta")
-ae_miRNAs_prec = file(GHdata + "smRNA/miRNA/aedes_aegypti_stemloop_b.fasta")
+ae_miRNAs_mature = file(aux + "mirbase/aae_mature.fa")
+ae_miRNAs_prec = file(aux + "mirbase/aae_pre.fa")
 
 genome_ref.into { genome_mirdeep }
 

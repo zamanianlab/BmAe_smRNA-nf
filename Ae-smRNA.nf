@@ -49,7 +49,7 @@ process trim_reads {
        fastp -i $reads -o ${id_out}.fq.gz -y -l 15 -h ${id_out}.html -j ${id_out}.json
    """
 }
-trimmed_fqs.set { trimmed_reads_mirdeep }
+trimmed_fqs.set { trimmed_reads_bwa }
 
 
 ////////////////////////////////////////////////
@@ -59,73 +59,39 @@ trimmed_fqs.set { trimmed_reads_mirdeep }
 
 geneset_gtf = file("${aedesgenome}/annotation/geneset_h.gtf.gz")
 genome_fa = file("${aedesgenome}/genome.fa")
-bowtie2_indices = Channel.fromPath("${aedesgenome}/bowtie2Index/*").collect()
-
-aae_mature = file(aux + "mirbase/aae_mature.fa")
-aae_prec = file(aux + "mirbase/aae_pre.fa")
+bwa_indices = Channel.fromPath("${aedesgenome}/BWAIndex/*").collect()
 
 
 ////////////////////////////////////////////////
-// ** - mirDeep2 pipeline
+// ** - bwa mapping
 ////////////////////////////////////////////////
 
-// Mirdeep2 mapper.pl (map to genome)
-process mirDeep2_mapper {
+process align {
+    publishDir "${output}/bwa_stats/", mode: 'copy'
 
-    cpus small_core
+    cpus large_core
     tag { id }
 
     input:
-        tuple val(id), file(reads) from trimmed_reads_mirdeep
-        file bowtie2_indices from bowtie2_indices
+        tuple val(id), file(reads) from trimmed_reads_bwa
+        file bwa_indices from bwa_indices.first()
 
     output:
-        file("${id}_map.arf") into reads_vs_genome_arf
-        tuple val(id), file("${id}_collapsed.fa") into reads_collapsed
+        file("${id}_align.txt") into bwa_stats
 
     script:
-        index_base = bowtie2_indices[0].toString() - ~/./
-
-      """
-        zcat ${reads} > ${id}.fa
-        mapper.pl ${id}.fa -e -h -j -l 18 -m -p ${index_base} -s ${id}_collapsed.fa -t ${id}_map.arf -v
-      """
-}
-reads_collapsed.into {reads_collapsed_Q; reads_collapsed_M}
-
-
-// Mirdeep2 quantifier.pl (map to predefined mature/precursor seqs)
-process mirDeep2_quantifier {
-
-    publishDir "${output}/quantifier/${id}/", mode: 'copy'
-
-    cpus large_core
-    tag { id }
-
-    input:
-        tuple val(id), file(collapsed_reads) from reads_collapsed_Q
-
-    output:
-        file "*" into quantifier_out
-
-    """
-        quantifier.pl -p ${aae_prec} -m ${aae_mature} -r ${collapsed_reads} -y now
-    """
-}
-
-// Mirdeep2 mirdeep2.pl
-process mirDeep2_pl {
-
-    cpus large_core
-    tag { id }
-
-    input:
-        tuple val(id), file(collapsed_reads) from reads_collapsed_M
-        file reads_vs_genome_arf from reads_vs_genome_arf
-        file("genome.fa") from genome_fa
+        fa_prefix = reads[0].toString() - ~/(_trim)(\.fq\.gz)$/
+        index_base = bwa_indices[0].toString() - ~/.fa*/
 
         """
-        cat genome.fa | awk '{print \$1}' > genome_clean.fa
-        miRDeep2.pl ${collapsed_reads} genome_clean.fa ${reads_vs_genome_arf} ${aae_mature} none ${aae_prec} -P
+        bwa aln -o 0 -n 0 -t ${large_core} ${index_base}.fa ${reads} > ${id}.sai
+        bwa samse parasite.fa ${id}.sai ${reads} > ${id}.sam
+        samtools view -bS ${id}.sam > ${id}.unsorted.bam
+        rm *.sam
+        samtools flagstat ${id}.unsorted.bam
+        samtools sort -@ ${large_core} -o ${id}.bam ${id}.unsorted.bam
+        rm *.unsorted.bam
+        samtools index -b ${id}.bam
+        samtools flagstat ${id}.bam > ${id}_align.txt
         """
 }

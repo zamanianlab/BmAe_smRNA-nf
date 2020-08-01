@@ -55,7 +55,6 @@ trimmed_fqs.set { trimmed_reads_mirdeep }
 ////////////////////////////////////////////////
 // ** - Load in genome and indices
 ////////////////////////////////////////////////
-// aedesgenome points to /mnt/genomes/Other/Aedes_aegypti/
 
 geneset_gtf = file("${aedesgenome}/annotation/geneset_h.gtf.gz")
 genome_fa = file("${aedesgenome}/genome.fa")

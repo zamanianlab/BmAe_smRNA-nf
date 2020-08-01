@@ -95,23 +95,23 @@ reads_collapsed.into {reads_collapsed_Q; reads_collapsed_M}
 
 
 // Mirdeep2 quantifier.pl (map to predefined mature/precursor seqs)
-// process mirDeep2_quantifier {
-//
-//     publishDir "${output}/quantifier/${id}/", mode: 'copy'
-//
-//     cpus large_core
-//     tag { id }
-//
-//     input:
-//         tuple val(id), file(collapsed_reads) from reads_collapsed_Q
-//
-//     output:
-//         file "*" into quantifier_out
-//
-//     """
-//         quantifier.pl -p ${aae_prec} -m ${aae_mature} -r ${collapsed_reads} -y now
-//     """
-// }
+process mirDeep2_quantifier {
+
+    publishDir "${output}/quantifier/${id}/", mode: 'copy'
+
+    cpus large_core
+    tag { id }
+
+    input:
+        tuple val(id), file(collapsed_reads) from reads_collapsed_Q
+
+    output:
+        file "*" into quantifier_out
+
+    """
+        quantifier.pl -p ${aae_prec} -m ${aae_mature} -r ${collapsed_reads} -y now
+    """
+}
 
 // Mirdeep2 mirdeep2.pl
 // process mirDeep2_pl {

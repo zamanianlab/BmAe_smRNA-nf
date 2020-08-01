@@ -4,17 +4,25 @@
 aux=config.aux_location
 data=config.data_location
 output=config.output_location
-GHdata=config.GHdata_location
+aedesgenome=config.aedesgenome_location
 
 large_core=config.large_core
 small_core=config.small_core
 
-// ** - Fetch fqs; alternative suffixes
-fq_set = Channel.fromPath(data + "/*.fastq.gz")
-                .map { n -> [ n.getName(), n ] }
+// Parameters
 
-// ** - Define paraemeters and auxillary files
-adapters = file("auxillary/TruSeq3-SE.fa")
+params.dir = null
+if( !params.dir ) error "Missing dir parameter"
+println "dir: $params.dir"
+
+////////////////////////////////////////////////
+// ** - Pull in fq files (paired)
+////////////////////////////////////////////////
+
+fqs = Channel.fromPath(data + "${params.dir}/*.fastq.gz")
+                        .map { n -> [ n.getName(), n ] }
+
+
 // rRNAs = file(GHdata + "smRNA/rRNA/ascaris_suum_rRNA.fasta")
 // tRNAs = file(GHdata + "smRNA/tRNA/ascaris_suum_tRNA.fasta")
 bm_miRNAs_mature = file(GHdata + "smRNA/miRNA/brugia_malayi_mature_b.fasta")

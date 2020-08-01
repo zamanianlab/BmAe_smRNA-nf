@@ -72,7 +72,7 @@ aae_prec = file(aux + "mirbase/aae_pre.fa")
 // Mirdeep2 mapper.pl (map to genome)
 process mirDeep2_mapper {
 
-    cpus large_core
+    cpus small_core
     tag { id }
 
     input:

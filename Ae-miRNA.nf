@@ -31,7 +31,7 @@ fqs = Channel.fromPath(data + "${params.dir}/*.fastq.gz")
 process trim_reads {
 
    cpus large_core
-   tag { id }xw
+   tag { id }
    publishDir "${output}/trim_stats/", mode: 'copy', pattern: '*.html'
    publishDir "${output}/trim_stats/", mode: 'copy', pattern: '*.json'
 

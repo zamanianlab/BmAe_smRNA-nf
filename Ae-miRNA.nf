@@ -114,17 +114,17 @@ process mirDeep2_quantifier {
 }
 
 // Mirdeep2 mirdeep2.pl
-// process mirDeep2_pl {
-//
-//     cpus large_core
-//     tag { id }
-//
-//     input:
-//         file("genome.fa") from genome_mirdeep
-//         file reads_vs_genome_arf from reads_vs_genome_arf
-//         set val(id), file(collapsed_reads) from reads_collapsed_M
-//
-//         """
-//         miRDeep2.pl ${collapsed_reads} genome.fa ${reads_vs_genome_arf} ${ae_miRNAs_mature} ${ce_miRNAs_mature} ${bm_miRNAs_prec} -P
-//         """
-// }
+process mirDeep2_pl {
+
+    cpus large_core
+    tag { id }
+
+    input:
+        file("genome.fa") from genome_mirdeep
+        file reads_vs_genome_arf from reads_vs_genome_arf
+        set val(id), file(collapsed_reads) from reads_collapsed_M
+
+        """
+        miRDeep2.pl ${collapsed_reads} genome.fa ${reads_vs_genome_arf} ${ae_miRNAs_mature} ${ce_miRNAs_mature} ${bm_miRNAs_prec} -P
+        """
+}

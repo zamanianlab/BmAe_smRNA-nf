@@ -53,7 +53,7 @@ trimmed_fqs.set { trimmed_reads_mirdeep }
 
 
 ////////////////////////////////////////////////
-// ** - LOAD in Aedes genome, indices, and miRNA files
+// ** - Load in genome and indices
 ////////////////////////////////////////////////
 // aedesgenome points to /mnt/genomes/Other/Aedes_aegypti/
 

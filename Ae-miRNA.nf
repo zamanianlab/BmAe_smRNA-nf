@@ -86,10 +86,10 @@ process mirDeep2_mapper {
     script:
         index_base = bowtie2_indices[0].toString() - ~/.\d.bt2/
 
-    """
+      """
         zcat ${reads} > ${id}.fa
         mapper.pl ${id}.fa -e -h -j -l 18 -m -p ${index_base} -s ${id}_collapsed.fa -t ${id}_map.arf -v
-    """
+      """
 }
 reads_collapsed.into {reads_collapsed_Q; reads_collapsed_M}
 

@@ -85,7 +85,7 @@ process bwa_align {
 
         """
         bwa aln -o 0 -n 0 -t ${large_core} ${index_base}.fa ${reads} > ${id}.sai
-        bwa samse parasite.fa ${id}.sai ${reads} > ${id}.sam
+        bwa samse ${index_base}.fa ${id}.sai ${reads} > ${id}.sam
         samtools view -bS ${id}.sam > ${id}.unsorted.bam
         rm *.sam
         samtools flagstat ${id}.unsorted.bam

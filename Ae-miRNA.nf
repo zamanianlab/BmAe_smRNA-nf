@@ -85,7 +85,7 @@ process mirDeep2_mapper_host {
         set val(id), file("${id}_collapsed.fa") into reads_collapsed
 
     script:
-        index_base = bowtie2_indices[0].toString() - ~/.\d.btw/
+        index_base = bowtie2_indices[0].toString() - ~/.\d.bt2/
 
     """
         zcat ${reads} > ${id}.fa

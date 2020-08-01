@@ -120,7 +120,7 @@ process mirDeep2_pl {
     tag { id }
 
     input:
-        file("genome.fa") from genome_mirdeep
+        file("genome.fa") from genome_fa
         file reads_vs_genome_arf from reads_vs_genome_arf
         set val(id), file(collapsed_reads) from reads_collapsed_M
 

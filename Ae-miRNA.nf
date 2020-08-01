@@ -125,6 +125,7 @@ process mirDeep2_pl {
         file("genome.fa") from genome_fa
 
         """
+        cat genome.fa | awk '{print \$1}' > genome.fa
         miRDeep2.pl ${collapsed_reads} genome.fa ${reads_vs_genome_arf} ${aae_mature} none ${aae_prec} -P
         """
 }

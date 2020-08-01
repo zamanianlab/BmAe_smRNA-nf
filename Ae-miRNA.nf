@@ -20,7 +20,7 @@ println "dir: $params.dir"
 // ** - Pull in fq files (paired)
 ////////////////////////////////////////////////
 
-fqs = Channel.fromPath(data + "${params.dir}/*.f*{0,3}q.gz")
+fqs = Channel.fromPath(data + "${params.dir}/*.f[a-zA-Z]{0,3}q.gz")
                         .map { n -> [ n.getName(), n ] }
 
 

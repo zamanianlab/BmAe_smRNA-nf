@@ -120,11 +120,11 @@ process mirDeep2_pl {
     tag { id }
 
     input:
-        file("genome.fa") from genome_fa
+        tuple val(id), file(collapsed_reads) from reads_collapsed_M
         file reads_vs_genome_arf from reads_vs_genome_arf
-        set val(id), file(collapsed_reads) from reads_collapsed_M
+        file("genome.fa") from genome_fa
 
         """
-        miRDeep2.pl ${collapsed_reads} genome.fa ${reads_vs_genome_arf} ${ae_miRNAs_mature} ${ce_miRNAs_mature} ${bm_miRNAs_prec} -P
+        miRDeep2.pl ${collapsed_reads} genome.fa ${reads_vs_genome_arf} ${aae_mature} -P
         """
 }

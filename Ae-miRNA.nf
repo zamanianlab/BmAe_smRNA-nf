@@ -2,7 +2,7 @@
 
 // Nextflow.configuration
 aux=config.aux_location
-data=config.data_location
+data=config.home_location // or brc_location
 output=config.output_location
 aedesgenome=config.aedesgenome_location
 
@@ -118,7 +118,7 @@ process quantifier_pl_host {
 
 // Mirdeep2 mirdeep2.pl
 // process mirDeep2_pl {
-// 
+//
 //     cpus large_core
 //     tag { id }
 //

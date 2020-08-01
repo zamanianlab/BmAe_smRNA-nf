@@ -2,7 +2,7 @@
 
 // Nextflow.configuration
 aux=config.aux_location
-data=config.home_location // or brc_location
+data=config.data_location // data_location or btdata_location
 output=config.output_location
 aedesgenome=config.aedesgenome_location
 

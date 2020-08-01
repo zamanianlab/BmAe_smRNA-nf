@@ -59,7 +59,7 @@ trimmed_fqs.set { trimmed_reads_mirdeep }
 
 geneset_gtf = file("${aedesgenome}/annotation/geneset_h.gtf.gz")
 genome_fa = file("${aedesgenome}/genome.fa")
-bowtie2_indices = Channel.fromPath("${aedesgenome}/bowtie2Index/*").buffer(size:8)
+bowtie2_indices = Channel.fromPath("${aedesgenome}/bowtie2Index/*").collect()
 
 aae_mature = file(aux + "mirbase/aae_mature.fa")
 aae_prec = file(aux + "mirbase/aae_pre.fa")
@@ -77,7 +77,7 @@ process mirDeep2_mapper {
 
     input:
         tuple val(id), file(reads) from trimmed_reads_mirdeep
-        file bowtieindex from bowtie2_indices.first()
+        file bowtieindex from bowtie2_indices
 
     output:
         file("${id}_map.arf") into reads_vs_genome_arf

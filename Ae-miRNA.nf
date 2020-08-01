@@ -65,8 +65,6 @@ bowtie2_indices = Channel.fromPath("${aedesgenome}/bowtie2Index/*.bt2") //.buffe
 aae_mature = file(aux + "mirbase/aae_mature.fa")
 aae_prec = file(aux + "mirbase/aae_pre.fa")
 
-genome_ref.into { genome_mirdeep }
-
 
 ////////////////////////////////////////////////
 // ** - mirDeep2 pipeline

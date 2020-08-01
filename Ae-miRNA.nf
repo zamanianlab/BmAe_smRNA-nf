@@ -62,8 +62,8 @@ genome_ref = file("${aedesgenome}/genome.fa")
 bwa_indices = Channel.fromPath("${aedesgenome}/BWAIndex/*") //.buffer(size:8)
 bowtie2_indices = Channel.fromPath("${aedesgenome}/bowtie2Index/*.bt2") //.buffer(size:8)
 
-ae_miRNAs_mature = file(aux + "mirbase/aae_mature.fa")
-ae_miRNAs_prec = file(aux + "mirbase/aae_pre.fa")
+aae_mature = file(aux + "mirbase/aae_mature.fa")
+aae_prec = file(aux + "mirbase/aae_pre.fa")
 
 genome_ref.into { genome_mirdeep }
 
@@ -112,7 +112,7 @@ process quantifier_pl_host {
         file "*" into quantifier_out
 
     """
-        quantifier.pl -p ${ae_miRNAs_prec} -m ${ae_miRNAs_mature} -r ${collapsed_reads} -y now
+        quantifier.pl -p ${aae_prec} -m ${aae_mature} -r ${collapsed_reads} -y now
     """
 }
 

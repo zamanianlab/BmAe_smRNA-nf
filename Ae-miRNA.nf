@@ -65,7 +65,7 @@ bowtie2_indices = Channel.fromPath("${aedesgenome}/bowtie2Index/*.bt2") //.buffe
 ae_miRNAs_mature = file(GHdata + "smRNA/miRNA/aedes_aegypti_mature_b.fasta")
 ae_miRNAs_prec = file(GHdata + "smRNA/miRNA/aedes_aegypti_stemloop_b.fasta")
 
-genome_ref.into { genome_bwa, genome_mirdeep }
+genome_ref.into { genome_mirdeep }
 
 
 ////////////////////////////////////////////////

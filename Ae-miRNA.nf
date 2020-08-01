@@ -59,7 +59,7 @@ trimmed_fqs.set { trimmed_reads_mirdeep }
 
 geneset_gtf = file("${aedesgenome}/annotation/geneset_h.gtf.gz")
 genome_fa = file("${aedesgenome}/genome.fa")
-bowtie2_indices = Channel.fromPath("${aedesgenome}/bowtie2Index/*.bt2")
+bowtie2_indices = Channel.fromPath("${aedesgenome}/bowtie2Index/*").buffer(size:8)
 
 aae_mature = file(aux + "mirbase/aae_mature.fa")
 aae_prec = file(aux + "mirbase/aae_pre.fa")
@@ -70,7 +70,7 @@ aae_prec = file(aux + "mirbase/aae_pre.fa")
 ////////////////////////////////////////////////
 
 // Mirdeep2 mapper.pl (map to genome)
-process mirDeep2_mapper_host {
+process mirDeep2_mapper {
 
     cpus large_core
     tag { id }
@@ -95,7 +95,7 @@ reads_collapsed.into {reads_collapsed_Q; reads_collapsed_M}
 
 
 // Mirdeep2 quantifier.pl (map to predefined mature/precursor seqs)
-process quantifier_pl_host {
+process mirDeep2_quantifier {
 
     publishDir "${output}/quantifier/${id}/", mode: 'copy'
 

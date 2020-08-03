@@ -4,7 +4,7 @@
 aux=config.aux_location
 data=config.data_location // data_location or btdata_location
 output=config.output_location
-aedesgenome=config.aedesgenome_location
+genome_dir=config.genome_location
 
 large_core=config.large_core
 small_core=config.small_core
@@ -56,9 +56,9 @@ trimmed_fqs.set { trimmed_reads_bwa }
 // ** - Load in genome and indices
 ////////////////////////////////////////////////
 
-geneset_gtf = file("${aedesgenome}/annotation/geneset_h.gtf.gz")
-genome_fa = file("${aedesgenome}/genome.fa")
-bwa_indices = Channel.fromPath("${aedesgenome}/BWAIndex/*").collect()
+geneset_gtf = file("${genome_dir}/Other/Aedes_aegypti/annotation/geneset_h.gtf.gz")
+genome_fa = file("${genome_dir}/Other/Aedes_aegypti/genome.fa")
+bwa_indices = Channel.fromPath("${genome_dir}/Other/Aedes_aegypti/BWAIndex/*").collect()
 
 
 ////////////////////////////////////////////////

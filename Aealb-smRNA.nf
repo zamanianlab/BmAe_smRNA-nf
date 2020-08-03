@@ -4,7 +4,7 @@
 aux=config.aux_location
 data=config.data_location // data_location or btdata_location
 output=config.output_location
-aedesgenome=config.aedesgenome_location
+genome_dir=config.genome_location
 
 large_core=config.large_core
 small_core=config.small_core

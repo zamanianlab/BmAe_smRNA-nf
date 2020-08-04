@@ -101,7 +101,9 @@ process build_bwa_index {
 ////////////////////////////////////////////////
 
 process bwa_align {
-    publishDir "${output}/bwa_stats/", mode: 'copy'
+    publishDir "${output}/bwa_stats/", mode: 'copy', pattern: '*align_.txt'
+    publishDir "${output}/bams", mode: 'copy', pattern: '*.bam'
+    publishDir "${output}/bams", mode: 'copy', pattern: '*.bam.bai'
 
     cpus large_core
     tag { id }
@@ -112,6 +114,8 @@ process bwa_align {
 
     output:
         file("${id}_align.txt") into bwa_stats
+        file("${id}.bam") into bam_files
+        file("${id}.bam.bai") into bam_indexes
 
     script:
         fa_prefix = reads[0].toString() - ~/(_trim)(\.fq\.gz)$/
